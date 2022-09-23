@@ -1,0 +1,22 @@
+<launch>
+    <arg name = "model_xacro" default = "$(find scout_gazebo)/urdf/base.xacro" />
+    
+    <!-- 将 Urdf 文件的内容加载到参数服务器 -->
+    <param name="robot_description" command="$(find xacro)/xacro $(arg model_xacro)" />
+
+    <!-- 启动 gazebo -->
+    <include file="$(find gazebo_ros)/launch/empty_world.launch">
+        <!-- <arg name="world_name" value="$(find world_sim)/worlds/carsim.world" /> -->
+    </include>
+
+   <node pkg="gazebo_ros" type="spawn_model" name="model" args="-urdf -model scout -param robot_description"  />  
+        
+    <!-- <rosparam file="$(find scout_gazebo)/config/scout_v2_control.yaml" command="load"/> -->
+  <node pkg="rqt_robot_steering" type="rqt_robot_steering" name="rqt_robot_steering" >
+        <param name="default_topic" value="/cmd_vel"/>                         <!-- default velocity control topic name -->
+        <param name="default_vx_max" value="0.5"/>                        <!-- linear velocity max value    m/s -->
+        <param name="default_vx_min" value="-0.5"/>                       <!-- linear velocity min value    m/s-->
+        <param name="default_vw_max" value="1.0"/>                    <!-- angular velocity max value  rad/s (adaptor for urdf joint limit) -->
+        <param name="default_vw_min" value="-1.00"/>                   <!-- angular velocity min value  rad/s (adaptor for urdf joint limit) -->
+    </node> 
+</launch>

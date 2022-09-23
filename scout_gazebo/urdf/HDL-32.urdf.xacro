@@ -1,0 +1,203 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="HDL-32">
+  <xacro:property name="M_PI" value="3.1415926535897931" />
+  <xacro:macro name="HDL-32" params="*origin 
+    out_parent:=baselink
+    laser_name:=velodyne
+    topic:=/velodyne_points 
+    organize_cloud:=false 
+    hz:=10 
+    lasers:=32 
+    samples:=2187 
+    collision_range:=0.3 
+    min_range:=0.9 
+    max_range:=130.0 
+    noise:=0.008 
+    min_angle:=-${M_PI} 
+    max_angle:=${M_PI} 
+    gpu:=false">
+
+    <!-- 雷达、支架属性 -->
+    <xacro:property name="support_length" value="0.30" /> <!-- 支架长度 -->
+    <xacro:property name="support_radius" value="0.025" /> <!-- 支架半径 -->
+    <xacro:property name="support_x_size" value="0.2" /> <!-- 支架安装的x坐标 -->
+    <xacro:property name="support_y_size" value="0.0" /> <!-- 支架安装的y坐标 -->
+    <xacro:property name="support_z_size" value="0.255" /> <!-- 支架安装的z坐标:底盘高度 / 2 + 支架高度 / 2  -->
+    <xacro:property name="support_m" value="0.02" /> <!-- 支架质量 -->
+
+    <xacro:property name="laser_length" value="0.0717" /> <!-- laser长度 -->
+    <xacro:property name="laser_radius" value="0.0516" /> <!-- laser半径 -->
+    <xacro:property name="laser_z_size" value="0.255" /> <!-- 支架安装的z坐标:底盘高度 / 2 + 支架高度 / 2  -->
+    <xacro:property name="laser_m" value="0.01" /> <!-- laser质量 -->
+
+    <!-- 雷达支架 -->
+    <link name="support">
+        <visual>
+            <geometry>
+                <cylinder radius="${support_radius}" length="${support_length}" />
+            </geometry>
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <material name="red">
+                <color rgba="0.8 0.2 0.0 0.8" />
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <cylinder radius="${support_radius}" length="${support_length}" />
+            </geometry>
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+        </collision>
+        <xacro:cylinder_inertial_matrix m="${support_m}" r="${support_radius}" h="${support_length}" />
+    </link>
+
+    <joint name="support2baselink" type="fixed">
+        <parent link="${out_parent}" />
+        <child link="support" />
+        <origin xyz="${support_x_size} ${support_y_size} ${support_z_size}" />
+    </joint>
+
+    <gazebo reference="support">
+        <material>Gazebo/White</material>
+    </gazebo>
+
+  <!-- 雷达关节以及link -->
+    <joint name="${laser_name}_base_mount_joint" type="fixed">
+        <xacro:insert_block name="origin" /> 
+        <parent link="${out_parent}"/>
+        <child link="${laser_name}_baselink"/>
+    </joint>
+
+    <link name="${laser_name}_baselink">
+        <inertial>
+            <mass value="0.83"/>
+        <origin xyz="0 0 0.07212"/>
+        <inertia ixx="${(1.0 * (3.0*0.04267*0.04267 + 0.14424*0.14424)) / 12.0}" ixy="0" ixz="0"
+          iyy="${(1.0 * (3.0*0.04267*0.04267 + 0.14424*0.14424)) / 12.0}" iyz="0"
+          izz="${0.5 * 1.0 * (0.04267*0.04267)}"/>
+        </inertial>
+      <visual>
+        <geometry>
+            <mesh filename="package://scout_description/meshes/HDL32E_base.dae" />
+        </geometry>
+      </visual>
+      <visual>
+        <geometry>
+            <mesh filename="package://scout_description/meshes/HDL32E_base.dae" />
+        </geometry>
+      </visual>
+      <collision>
+       <origin rpy="0 0 0" xyz="0 0 0.07212"/>
+        <geometry>
+          <cylinder radius="0.04267" length="0.14424"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="${laser_name}_base_scan_joint" type="fixed" >
+      <origin xyz="0 0 0.09081" rpy="0 0 0" />
+        <parent link="${laser_name}_baselink" />
+        <child link="${laser_name}"/>
+    </joint>
+
+    <link name="${laser_name}">
+        <inertial>
+            <mass value="0.01"/>
+            <origin xyz="0 0 0"/>
+            <inertia ixx="1e-7" ixy="0" ixz="0" iyy="1e-7" iyz="0" izz="1e-7"/>
+        </inertial>
+        <visual>
+            <origin xyz="0 0 -0.0377" />
+            <geometry>
+                <mesh filename="package://scout_description/meshes/HDL32E_base.dae" />
+            </geometry>
+        </visual>
+    </link>
+
+    <!-- Gazebo requires the velodyne_gazebo_plugins package -->
+    <gazebo reference="${laser_name}">
+        <xacro:if value="${gpu}">
+            <sensor type="gpu_ray" name="${laser_name}-HDL32E">
+            <pose>0 0 0 0 0 0</pose>
+            <visualize>false</visualize>
+            <update_rate>${hz}</update_rate>
+                <ray>
+                    <scan>
+                    <horizontal>
+                        <samples>${samples}</samples>
+                        <resolution>1</resolution>
+                        <min_angle>${min_angle}</min_angle>
+                        <max_angle>${max_angle}</max_angle>
+                    </horizontal>
+                    <vertical>
+                        <samples>${lasers}</samples>
+                        <resolution>1</resolution>
+                            <min_angle>-${30.67*M_PI/180.0}</min_angle>
+                            <max_angle> ${10.67*M_PI/180.0}</max_angle>
+                    </vertical>
+                    </scan>
+                    <range>
+                    <min>${collision_range}</min>
+                    <max>${max_range+1}</max>
+                    <resolution>0.001</resolution>
+                    </range>
+                    <noise>
+                    <type>gaussian</type>
+                    <mean>0.0</mean>
+                    <stddev>0.0</stddev>
+                    </noise>
+                </ray>
+                <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_velodyne_gpu_laser.so">
+                    <topicName>${topic}</topicName>
+                    <frameName>${laser_name}</frameName>
+                    <organize_cloud>${organize_cloud}</organize_cloud>
+                    <min_range>${min_range}</min_range>
+                    <max_range>${max_range}</max_range>
+                    <gaussianNoise>${noise}</gaussianNoise>
+                </plugin>
+            </sensor>
+        </xacro:if>
+      <xacro:unless value="${gpu}">
+        <sensor type="ray" name="${laser_name}-HDL32">
+            <pose>0 0 0 0 0 0</pose>
+            <visualize>false</visualize>
+            <update_rate>${hz}</update_rate>
+            <ray>
+                <scan>
+                    <horizontal>
+                        <samples>${samples}</samples>
+                        <resolution>1</resolution>
+                        <min_angle>${min_angle}</min_angle>
+                        <max_angle>${max_angle}</max_angle>
+                    </horizontal>
+                    <vertical>
+                        <samples>${lasers}</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-${30.67*M_PI/180.0}</min_angle>
+                        <max_angle> ${10.67*M_PI/180.0}</max_angle>
+                    </vertical>
+                </scan>
+                <range>
+                    <min>${collision_range}</min>
+                    <max>${max_range+1}</max>
+                    <resolution>0.001</resolution>
+                </range>
+                <noise>
+                    <type>gaussian</type>
+                    <mean>0.0</mean>
+                    <stddev>0.0</stddev>
+                </noise>
+            </ray>
+            <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_velodyne_laser.so">
+                <topicName>${topic}</topicName>
+                <frameName>${laser_name}</frameName>
+                <organize_cloud>${organize_cloud}</organize_cloud>
+                <min_range>${min_range}</min_range>
+                <max_range>${max_range}</max_range>
+                <gaussianNoise>${noise}</gaussianNoise>
+            </plugin>
+        </sensor>
+      </xacro:unless>
+    </gazebo>
+
+  </xacro:macro>
+</robot>

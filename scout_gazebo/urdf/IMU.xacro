@@ -1,0 +1,62 @@
+<?xml version="1.0"?>
+<!-- 摄像头相关的 xacro 文件 -->
+<robot name="my_imu" xmlns:xacro="http://wiki.ros.org/xacro">
+    <!-- imu属性 -->
+    <xacro:property name="imu_length" value="0.025" /> <!--imu长度(x) -->
+    <xacro:property name="imu_width" value="0.04" /> <!-- imu宽度(y) -->
+    <xacro:property name="imu_height" value="0.04" /> <!--imu高度(z) -->
+    <xacro:property name="imu_x" value="0.0" /> <!-- imu安装的x坐标 -->
+    <xacro:property name="imu_y" value="0.0" /> <!-- imu安装的y坐标 -->
+    <xacro:property name="imu_z" value="${base_z_size / 2 + imu_height / 2}" /> <!-- imu安装的z坐标:底盘高度 / 2 + imu高度 / 2  -->
+    <xacro:property name="imu_m" value="0.01" /> <!--imu质量 -->
+
+    <!-- imu关节以及link -->
+    <link name="imu">
+        <visual>
+            <geometry>
+                <box size="${imu_length} ${imu_width} ${imu_height}" />
+            </geometry>
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+            <material name="black" />
+        </visual>
+        <collision>
+            <geometry>
+                <box size="${imu_length} ${imu_width} ${imu_height}" />
+            </geometry>
+            <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0" />
+        </collision>
+        <xacro:Box_inertial_matrix m="${imu_m}" l="${imu_length}" w="${imu_width}" h="${imu_height}" />
+    </link>
+
+    <joint name="imu2baselink" type="fixed">
+        <parent link="baselink" />
+        <child link="imu" />
+        <origin xyz="${imu_x} ${imu_y} ${imu_z}" />
+    </joint>
+
+    <gazebo reference="imu"><!--gazebo中颜色显示 -->
+        <material>Gazebo/Red</material>
+    </gazebo>
+
+	<!-- gazebo imu插件配置 -->
+    <gazebo reference="imu">
+        <gravity>true</gravity>
+            <sensor name="imu_sensor" type="imu">
+            <always_on>true</always_on>
+            <update_rate>400</update_rate>
+            <visualize>true</visualize>
+            <topic>__default_topic__</topic>
+            <plugin filename="libgazebo_ros_imu_sensor.so" name="imu_plugin">
+                <topicName>/imu/data</topicName>
+                <bodyName>imu</bodyName>
+                <updateRateHZ>400.0</updateRateHZ>
+                <gaussianNoise>0.0</gaussianNoise>
+                <xyzOffset>0 0 0</xyzOffset>
+                <rpyOffset>0 0 0</rpyOffset>
+                <initialOrientationAsReference>true</initialOrientationAsReference>
+                <frameName>imu_link</frameName>
+            </plugin>
+            <pose>0 0 0 0 0 0</pose>
+            </sensor>
+    </gazebo>
+</robot>

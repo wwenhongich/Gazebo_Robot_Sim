@@ -1,0 +1,122 @@
+<?xml version="1.0"?>
+
+<robot name="scout_v2"  xmlns:xacro="http://ros.org/wiki/xacro">
+
+    <xacro:arg name="robot_namespace" default="/" /> 
+
+  <xacro:arg name="gpu" default="true"/>
+  <xacro:property name="gpu" value="$(arg gpu)" />
+  <xacro:arg name="organize_cloud" default="false"/>
+  <xacro:property name="organize_cloud" value="$(arg organize_cloud)" />
+
+    <!-- 属性封装 -->
+    <xacro:property name="M_PI" value="3.14159"/>
+
+    <xacro:property name="base_x_size" value="0.9250000" />
+    <xacro:property name="base_y_size" value="0.380000" />
+    <xacro:property name="base_z_size" value="0.210000" />
+
+    <xacro:property name="wheelbase" value="0.498" />
+    <xacro:property name="track" value="0.58306" />   <!-- track————车轮间距 -->
+    <xacro:property name="wheel_vertical_offset" value="-0.0702" />
+
+    <xacro:property name="wheel_length" value="1.1653e-01" />
+    <xacro:property name="wheel_radius" value="1.6459e-01" />
+    
+    <material name="black">
+        <color rgba="0.0 0.0 0.0 1.0" />
+    </material>
+    
+    <!-- 包含其他xacro文件 -->
+    <xacro:include filename="$(find scout_gazebo)/urdf/scout_wheel_type1.xacro" />
+    <xacro:include filename="$(find scout_gazebo)/urdf/scout_wheel_type2.xacro" />
+
+    <xacro:include filename="$(find scout_gazebo)/urdf/inertial.xacro" />
+    <xacro:include filename="$(find scout_gazebo)/urdf/IMU.xacro" />
+    <xacro:include filename="$(find scout_gazebo)/urdf/VLP-16.urdf.xacro"/>
+
+    <xacro:include filename="$(find scout_gazebo)/urdf/camera.xacro" />
+    <xacro:include filename="$(find scout_gazebo)/urdf/move.xacro" />
+
+
+  <xacro:VLP-16 out_parent="baselink" laser_name="velodyne" topic="/velodyne_points" organize_cloud="${organize_cloud}" hz="10" samples="1024" gpu="${gpu}">
+    <origin xyz="0.2 0 0.40" rpy="0 0 0" /> -->
+  </xacro:VLP-16>
+
+  <gazebo>  
+              <plugin name="gps" filename="libhector_gazebo_ros_gps.so">  
+                  <updateRate>10.0</updateRate>  
+                  <topicName>sensor_msgs/NavSatFix</topicName>  
+                  <gaussianNoise>0.01 0.01 0.1</gaussianNoise>  
+                  <offset>0 0 0</offset>  
+                  <velocityGaussianNoise>0 0 0</velocityGaussianNoise>  
+                  <frameId>baselink</frameId>  
+              </plugin>  
+  </gazebo> 
+
+
+
+    <!-- Base link  底盘 -->
+    <link name="baselink">
+        <visual>
+            <origin xyz="0 0 0" rpy="0 0 0" />
+            <geometry>
+                <!--<box size="${base_x_size} ${base_y_size} ${base_z_size}"/>-->
+                <mesh filename="package://scout_gazebo/meshes/base_link.dae" />
+            </geometry>
+        </visual>
+        <collision>
+            <origin xyz="0 0 0.008" rpy="0 0 0" />
+            <geometry>
+                <box size="${base_x_size} ${base_y_size} ${base_z_size}"/>
+            </geometry>
+        </collision>
+        <collision>
+            <origin xyz="0 0 ${base_z_size/6}" rpy="0 0 0" />
+            <geometry>
+                <box size="${base_x_size/6} ${base_y_size*1.65} ${base_z_size/3}"/>
+            </geometry>
+        </collision>
+    </link>
+
+    <link name="base_footprint"/>
+
+
+    <!-- 关节 -->
+    <joint name="base_footprint_joint" type="fixed">
+        <origin xyz="0 0 ${wheel_vertical_offset - wheel_radius}" rpy="0 0 0" />
+        <parent link="baselink" />
+        <child link="base_footprint" />
+    </joint>
+
+    <link name="inertial_link">
+        <inertial>
+            <mass value="5" />
+            <origin xyz="0.0 0.0 0.0" />
+            <inertia ixx="2.288641" ixy="0" ixz="0" iyy="5.103976" iyz="0" izz="3.431465" />
+        </inertial>
+    </link>
+
+    <joint name="inertial_joint" type="fixed">
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <parent link="baselink" />
+        <child link="inertial_link" />
+    </joint>
+
+    <!-- 宏  Scout wheel macros -->
+    <!-- motor 1 and 2 (left side) are mechanically installed in a reversed direction --> 
+      <xacro:scout_wheel_type1 wheel_prefix="front_right">
+        <origin xyz="${wheelbase/2} ${-track/2} ${wheel_vertical_offset}" rpy="3.14 0 0" />
+    </xacro:scout_wheel_type1>
+    <xacro:scout_wheel_type2 wheel_prefix="front_left">
+        <origin xyz="${wheelbase/2} ${track/2} ${wheel_vertical_offset}" rpy="0 0 0" />
+    </xacro:scout_wheel_type2>
+    <xacro:scout_wheel_type1 wheel_prefix="rear_left">
+        <origin xyz="${-wheelbase/2} ${track/2} ${wheel_vertical_offset}" rpy="0 0 0" />
+    </xacro:scout_wheel_type1>
+    <xacro:scout_wheel_type2 wheel_prefix="rear_right">
+        <origin xyz="${-wheelbase/2} ${-track/2} ${wheel_vertical_offset}" rpy="3.14 0 0" />
+    </xacro:scout_wheel_type2>
+
+
+</robot>
